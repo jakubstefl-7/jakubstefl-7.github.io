@@ -166,3 +166,320 @@ footer {
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOTHING™ — Neon Dodge</title>
+<style>
+* {box-sizing:border-box;margin:0;padding:0}
+
+body {
+ background:#090912;
+ color:white;
+ font-family:Arial,sans-serif;
+ min-height:100vh;
+}
+
+nav {
+ padding:25px 8%;
+ border-bottom:1px solid #ffffff15;
+ display:flex;
+ justify-content:space-between;
+}
+
+.logo {font-size:23px;font-weight:bold}
+.logo span {color:#a78bfa}
+
+.tag {
+ color:#a78bfa;
+ font-size:11px;
+ letter-spacing:3px;
+}
+
+section {
+ min-height:85vh;
+ display:none;
+ justify-content:center;
+ align-items:center;
+ text-align:center;
+ padding:30px 15px;
+}
+
+section.active {display:flex}
+
+h1 {
+ font-size:clamp(45px,8vw,75px);
+ margin:20px 0;
+}
+
+h1 span {
+ color:#a78bfa;
+}
+
+p {
+ color:#9999ad;
+ line-height:1.7;
+}
+
+button {
+ border:0;
+ padding:16px 35px;
+ margin-top:25px;
+ border-radius:12px;
+ background:linear-gradient(100deg,#8b5cf6,#c084fc);
+ color:white;
+ font-weight:bold;
+ cursor:pointer;
+ transition:.2s;
+}
+
+button:hover {transform:translateY(-3px)}
+
+.panel {
+ max-width:650px;
+ width:100%;
+}
+
+#game {
+ display:block;
+ width:100%;
+ max-width:600px;
+ height:400px;
+ margin:20px auto;
+ border:1px solid #ffffff20;
+ border-radius:15px;
+ background:#10101e;
+ touch-action:none;
+}
+
+.score {
+ font-size:22px;
+ margin:15px;
+ color:#c4b5fd;
+}
+
+.back {
+ background:#242436;
+ margin-left:10px;
+}
+
+footer {
+ text-align:center;
+ padding:25px;
+ color:#55556b;
+ font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+ <div class="logo">✳ NOTHING<span>™</span></div>
+ <div class="tag">PRODUCTIVITY 0%</div>
+</nav>
+
+<!-- UVOD -->
+<section id="home" class="active">
+ <div class="panel">
+  <div class="tag">THE FUTURE OF NOTHING</div>
+  <h1>Do less.<br><span>Be less.</span></h1>
+  <p>
+   Revoluční platforma, která ti pomůže
+   nedělat vůbec nic.
+  </p>
+  <button onclick="showGame()">DO NOTHING ↗</button>
+ </div>
+</section>
+
+<!-- HERNÍ MENU -->
+<section id="menu">
+ <div class="panel">
+  <div class="tag">SECRET LEVEL UNLOCKED</div>
+  <h1>NEON <span>DODGE</span></h1>
+  <p>
+   Vítej v úplně zbytečné hře.<br>
+   Vyhýbej se padajícím překážkám a přežij co nejdéle.
+  </p>
+  <button onclick="startGame()">START GAME</button>
+  <br>
+  <button class="back" onclick="showHome()">← BACK</button>
+ </div>
+</section>
+
+<!-- HRA -->
+<section id="gameScreen">
+ <div class="panel">
+  <div class="tag">SURVIVE AS LONG AS POSSIBLE</div>
+  <h1>NEON <span>DODGE</span></h1>
+  <div class="score">SCORE: <span id="score">0</span></div>
+  <canvas id="game" width="600" height="400"></canvas>
+  <p>Ovládání: šipky / A D / myš / dotyk</p>
+  <button onclick="startGame()">RESTART</button>
+  <button class="back" onclick="showMenu()">MENU</button>
+ </div>
+</section>
+
+<footer>© 2026 NOTHING INC. — Made for no reason.</footer>
+
+<script>
+const sections = ["home","menu","gameScreen"];
+
+function show(id) {
+ sections.forEach(s =>
+  document.getElementById(s).classList.remove("active")
+ );
+ document.getElementById(id).classList.add("active");
+}
+
+function showHome() { stopGame(); show("home"); }
+function showMenu() { stopGame(); show("menu"); }
+function showGame() { show("menu"); }
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player, obstacles, score, running;
+let keys = {};
+let animation;
+let lastTime = 0;
+let spawnTimer = 0;
+
+function startGame() {
+ cancelAnimationFrame(animation);
+ show("gameScreen");
+
+ player = {x:280,y:340,w:30,h:30,speed:5};
+ obstacles = [];
+ score = 0;
+ running = true;
+ lastTime = 0;
+ spawnTimer = 0;
+
+ document.getElementById("score").textContent = 0;
+ animation = requestAnimationFrame(loop);
+}
+
+function stopGame() {
+ running = false;
+ cancelAnimationFrame(animation);
+}
+
+document.addEventListener("keydown",e => {
+ keys[e.key.toLowerCase()] = true;
+});
+
+document.addEventListener("keyup",e => {
+ keys[e.key.toLowerCase()] = false;
+});
+
+let pointerDown = false;
+
+function moveTo(e) {
+ const rect = canvas.getBoundingClientRect();
+ const scaleX = canvas.width / rect.width;
+ player.x = (e.clientX - rect.left) * scaleX - player.w/2;
+}
+
+canvas.addEventListener("pointermove",e => {
+ if(running) moveTo(e);
+});
+
+function loop(timestamp) {
+ if(!running) return;
+
+ const dt = Math.min((timestamp-lastTime)/16.67 || 1,2);
+ lastTime = timestamp;
+
+ ctx.clearRect(0,0,600,400);
+
+ // pozadí
+ ctx.strokeStyle="#ffffff08";
+ for(let x=0;x<600;x+=40) {
+  ctx.beginPath();
+  ctx.moveTo(x,0);
+  ctx.lineTo(x,400);
+  ctx.stroke();
+ }
+
+ // pohyb hráče
+ if(keys["arrowleft"] || keys["a"]) player.x-=player.speed*dt;
+ if(keys["arrowright"] || keys["d"]) player.x+=player.speed*dt;
+
+ player.x=Math.max(0,Math.min(600-player.w,player.x));
+
+ // hráč
+ ctx.shadowBlur=20;
+ ctx.shadowColor="#a78bfa";
+ ctx.fillStyle="#a78bfa";
+ ctx.fillRect(player.x,player.y,player.w,player.h);
+ ctx.shadowBlur=0;
+
+ // překážky
+ spawnTimer+=dt;
+ if(spawnTimer>35) {
+  obstacles.push({
+   x:Math.random()*560,
+   y:-30,
+   size:20+Math.random()*20,
+   speed:2+Math.random()*2+score/500
+  });
+  spawnTimer=0;
+ }
+
+ for(let i=obstacles.length-1;i>=0;i--) {
+  let o=obstacles[i];
+  o.y+=o.speed*dt;
+
+  ctx.shadowBlur=15;
+  ctx.shadowColor="#ec4899";
+  ctx.fillStyle="#ec4899";
+  ctx.fillRect(o.x,o.y,o.size,o.size);
+  ctx.shadowBlur=0;
+
+  // kolize
+  if(
+   player.x<o.x+o.size &&
+   player.x+player.w>o.x &&
+   player.y<o.y+o.size &&
+   player.y+player.h>o.y
+  ) {
+   gameOver();
+   return;
+  }
+
+  if(o.y>420) {
+   obstacles.splice(i,1);
+   score+=10;
+   document.getElementById("score").textContent=score;
+  }
+ }
+
+ animation=requestAnimationFrame(loop);
+}
+
+function gameOver() {
+ running=false;
+ cancelAnimationFrame(animation);
+
+ ctx.fillStyle="#090912cc";
+ ctx.fillRect(0,0,600,400);
+
+ ctx.textAlign="center";
+ ctx.fillStyle="white";
+ ctx.font="bold 38px Arial";
+ ctx.fillText("GAME OVER",300,175);
+
+ ctx.font="20px Arial";
+ ctx.fillStyle="#c4b5fd";
+ ctx.fillText("SCORE: "+score,300,220);
+
+ ctx.font="14px Arial";
+ ctx.fillStyle="#9999ad";
+ ctx.fillText("Klikni na RESTART a zkus to znovu",300,260);
+}
+</script>
+
+</body>
+</html>
